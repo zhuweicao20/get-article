@@ -22,10 +22,10 @@ journals:
     mode: crossref
     priority: 10
 
-  - name: ACS Central Science
-    mode: rss
-    feed_url: https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=acscii
-    priority: 10
+#  - name: ACS Central Science
+#    mode: rss
+#    feed_url: https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=acscii
+#    priority: 10
 
   - name: JACS Au
     mode: rss
