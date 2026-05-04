@@ -1,47 +1,54 @@
-# 化学大类开放获取优先监控列表
-# mode:
-#   crossref: 通过 Crossref 按期刊名检索最近文章
-#   rss:      通过 RSS 检索；如 DOI/摘要缺失，会访问文章页补充
 journals:
+  # =========================
+  # Nature Portfolio 开放获取
+  # =========================
   - name: Nature Communications
-    mode: rss
+    type: rss
     feed_url: https://www.nature.com/ncomms.rss
-    priority: 10
+    home: https://www.nature.com/ncomms/articles
+    publisher: nature
 
   - name: Communications Chemistry
-    mode: rss
+    type: rss
     feed_url: https://www.nature.com/commschem.rss
-    priority: 9
+    home: https://www.nature.com/commschem/articles
+    publisher: nature
 
   - name: Communications Materials
-    mode: rss
+    type: rss
     feed_url: https://www.nature.com/commsmat.rss
-    priority: 8
+    home: https://www.nature.com/commsmat/articles
+    publisher: nature
 
+  # =========================
+  # AAAS 开放获取
+  # =========================
   - name: Science Advances
-    mode: crossref
-    priority: 10
+    type: crossref
+    query_journal: Science Advances
+    home: https://www.science.org/journal/sciadv
+    publisher: science
 
-#  - name: ACS Central Science
-#    mode: rss
-#    feed_url: https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=acscii
-#    priority: 10
-
-  - name: JACS Au
-    mode: rss
-    feed_url: https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=jaaucr
-    priority: 8
-
-  - name: Chemical Science
-    mode: crossref
-    priority: 9
-
+  # =========================
+  # Nature npj 系列
+  # =========================
   - name: npj Computational Materials
-    mode: rss
-    feed_url: https://www.nature.com/npjcompumats.rss
-    priority: 7
+    type: crossref
+    query_journal: npj Computational Materials
+    home: https://www.nature.com/npjcompumats/
+    publisher: nature
 
+  - name: npj Clean Water
+    type: crossref
+    query_journal: npj Clean Water
+    home: https://www.nature.com/npjcleanwater/
+    publisher: nature
+
+  # =========================
+  # 量大，先保留，但靠关键词筛选
+  # =========================
   - name: Scientific Reports
-    mode: rss
+    type: rss
     feed_url: https://www.nature.com/srep.rss
-    priority: 4
+    home: https://www.nature.com/srep/articles
+    publisher: nature
