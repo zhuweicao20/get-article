@@ -1,0 +1,47 @@
+# 化学大类开放获取优先监控列表
+# mode:
+#   crossref: 通过 Crossref 按期刊名检索最近文章
+#   rss:      通过 RSS 检索；如 DOI/摘要缺失，会访问文章页补充
+journals:
+  - name: Nature Communications
+    mode: rss
+    feed_url: https://www.nature.com/ncomms.rss
+    priority: 10
+
+  - name: Communications Chemistry
+    mode: rss
+    feed_url: https://www.nature.com/commschem.rss
+    priority: 9
+
+  - name: Communications Materials
+    mode: rss
+    feed_url: https://www.nature.com/commsmat.rss
+    priority: 8
+
+  - name: Science Advances
+    mode: crossref
+    priority: 10
+
+  - name: ACS Central Science
+    mode: rss
+    feed_url: https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=acscii
+    priority: 10
+
+  - name: JACS Au
+    mode: rss
+    feed_url: https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=jaaucr
+    priority: 8
+
+  - name: Chemical Science
+    mode: crossref
+    priority: 9
+
+  - name: npj Computational Materials
+    mode: rss
+    feed_url: https://www.nature.com/npjcompumats.rss
+    priority: 7
+
+  - name: Scientific Reports
+    mode: rss
+    feed_url: https://www.nature.com/srep.rss
+    priority: 4

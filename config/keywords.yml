@@ -1,0 +1,50 @@
+# 化学大类关键词。命中越多，排序越靠前。
+keywords:
+  # 催化 / 环境
+  - catalysis
+  - catalyst
+  - photocatalysis
+  - electrocatalysis
+  - thermal catalysis
+  - single-atom catalyst
+  - oxygen vacancy
+  - CO2 reduction
+  - carbon dioxide reduction
+  - hydrogen evolution
+  - oxygen evolution
+  - HER
+  - OER
+  - ORR
+  - pollutant
+  - degradation
+  - water treatment
+  - advanced oxidation
+  - peroxymonosulfate
+  - PFAS
+  - PFOA
+
+  # 材料 / 能源
+  - MOF
+  - metal-organic framework
+  - COF
+  - covalent organic framework
+  - MXene
+  - perovskite
+  - carbon nitride
+  - graphene
+  - heterojunction
+  - defect engineering
+  - battery
+  - lithium
+  - zinc battery
+  - supercapacitor
+  - solar cell
+  - hydrogen production
+
+  # 计算 / 机制
+  - DFT
+  - density functional theory
+  - molecular dynamics
+  - machine learning
+  - high-throughput
+  - reaction mechanism

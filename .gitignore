@@ -1,0 +1,19 @@
+# downloaded papers and generated article packages
+downloads/*
+!downloads/.gitkeep
+output/*
+!output/.gitkeep
+
+# state can be committed only for seen_dois.json by workflow
+state/*.tmp
+
+# secrets / login states
+.env
+cookies/
+*.cookie
+*.sqlite
+*.log
+*.pdf
+__pycache__/
+.pytest_cache/
+.DS_Store
