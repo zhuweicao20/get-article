@@ -2,9 +2,9 @@
 lookback_days: 3
 max_candidates: 12
 max_downloads: 5
-max_articles: 2
+max_articles: 1
 word_count: 1800
 max_figures: 8
 push_on_first_run: false
 # Unpaywall 要求 email；推荐在 GitHub Secrets 设置 UNPAYWALL_EMAIL。
-unpaywall_email_fallback: your_email@example.com
+unpaywall_email_fallback: ""

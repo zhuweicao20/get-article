@@ -83,6 +83,11 @@ class Paper:
 def ensure_dirs() -> None:
     for d in [STATE_DIR, DOWNLOAD_DIR, OUTPUT_DIR, ARTICLE_DIR]:
         d.mkdir(parents=True, exist_ok=True)
+    root_logger = logging.getLogger()
+    if not any(isinstance(h, logging.FileHandler) and getattr(h, "baseFilename", "") == str(LOG_FILE) for h in root_logger.handlers):
+        fh = logging.FileHandler(LOG_FILE, encoding="utf-8")
+        fh.setFormatter(logging.Formatter("%(asctime)s | %(levelname)s | %(message)s"))
+        root_logger.addHandler(fh)
 
 
 def load_yaml(path: Path) -> Dict[str, Any]:
@@ -373,7 +378,7 @@ def rule_based_pdf_url(p: Paper) -> str:
 
 def unpaywall_pdf_url(session: requests.Session, doi: str, email: str) -> str:
     doi = normalize_doi(doi)
-    if not doi or not email:
+    if not doi or not email or email == "your_email@example.com":
         return ""
     url = f"{UNPAYWALL_API}/{doi}"
     try:
@@ -492,6 +497,10 @@ def main() -> int:
     word_count = args.word_count if args.word_count is not None else int(cfg.get("word_count", 1800))
     max_figures = args.max_figures if args.max_figures is not None else int(cfg.get("max_figures", 8))
     email = os.getenv("UNPAYWALL_EMAIL", "").strip() or cfg.get("unpaywall_email_fallback", "")
+    if email == "your_email@example.com":
+        email = ""
+    if not email:
+        logging.warning("UNPAYWALL_EMAIL is not set; Unpaywall lookup will be skipped.")
 
     journals = load_yaml(Path(args.journals)).get("journals", [])
     keywords = load_yaml(Path(args.keywords)).get("keywords", [])
@@ -502,7 +511,8 @@ def main() -> int:
     all_papers: List[Paper] = []
     for j in journals:
         try:
-            if j.get("mode") == "rss":
+            source_mode = (j.get("mode") or j.get("type") or "crossref").lower()
+            if source_mode == "rss":
                 all_papers.extend(fetch_rss_journal(session, j, keywords))
             else:
                 all_papers.extend(fetch_crossref_journal(session, j, keywords, days=days))

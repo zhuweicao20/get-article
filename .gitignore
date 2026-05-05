@@ -10,6 +10,7 @@ state/*.tmp
 # secrets / login states
 .env
 cookies/
+.local_wechat_profile/
 *.cookie
 *.sqlite
 *.log

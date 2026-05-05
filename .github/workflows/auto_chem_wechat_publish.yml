@@ -4,21 +4,21 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: "忽略 seen_dois，强制从最近论文里生成并发布测试文章"
+        description: "Ignore seen_dois and force a test article from recent papers"
         required: false
         default: "false"
       days:
-        description: "回看最近几天"
+        description: "Look back this many days"
         required: false
         default: "3"
       max_articles:
-        description: "最多生成并发布几篇文章"
+        description: "Maximum generated and published articles"
         required: false
         default: "1"
       mode:
-        description: "draft 保存草稿；publish 提交发布"
+        description: "draft saves to WeChat drafts; publish submits for publication"
         required: true
-        default: "publish"
+        default: "draft"
         type: choice
         options:
           - draft
@@ -69,6 +69,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Check WeChat API secrets
+        run: |
+          if [ -z "$UNPAYWALL_EMAIL" ]; then
+            echo "Missing UNPAYWALL_EMAIL. Add it in GitHub Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          if [ -z "$WECHAT_APPID" ] || [ -z "$WECHAT_APPSECRET" ]; then
+            echo "Missing WECHAT_APPID or WECHAT_APPSECRET. Add them in GitHub Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
       - name: Generate article packages from new papers
         run: |
           FORCE_FLAG=""
@@ -102,6 +113,7 @@ jobs:
             output/articles
             output/report.csv
             output/candidates.json
+            output/auto_pipeline.log
             output/wechat_publish_result.json
 
       - name: Commit monitor state

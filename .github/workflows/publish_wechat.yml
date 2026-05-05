@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       article_dir:
-        description: "指定 output/articles 下的文章文件夹名；留空则自动选最新文章"
+        description: "Folder name under output/articles; leave empty to publish the newest article"
         required: false
         default: ""
       mode:
-        description: "draft 只保存草稿；publish 提交群发发布"
+        description: "draft saves to WeChat drafts; publish submits for publication"
         required: true
         default: "draft"
         type: choice
@@ -46,6 +46,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Check WeChat API secrets
+        run: |
+          if [ -z "$WECHAT_APPID" ] || [ -z "$WECHAT_APPSECRET" ]; then
+            echo "Missing WECHAT_APPID or WECHAT_APPSECRET. Add them in GitHub Settings > Secrets and variables > Actions."
+            exit 1
+          fi
 
       - name: Download latest generated article artifact
         uses: dawidd6/action-download-artifact@v6
