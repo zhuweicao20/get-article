@@ -102,15 +102,39 @@ def wait_for_login(page, timeout_ms: int) -> None:
     page.wait_for_timeout(3000)
 
 
-def open_editor(page) -> None:
-    for url in (
-        "https://mp.weixin.qq.com/cgi-bin/appmsg?t=media/appmsg_edit&action=edit&type=10&lang=zh_CN",
-        "https://mp.weixin.qq.com/cgi-bin/appmsg?t=media/appmsg_edit&action=edit&type=10",
+def open_editor(context, page):
+    page.goto("https://mp.weixin.qq.com/", wait_until="domcontentloaded")
+    page.wait_for_timeout(5000)
+    try:
+        page.mouse.click(388, 780)
+        page.wait_for_timeout(8000)
+        return context.pages[-1]
+    except Exception:
+        pass
+    for selector in (
+        ".new-creation__menu-item:has-text('文章')",
+        ".new-creation__menu-title:has-text('文章')",
+        "text=文章",
     ):
-        page.goto(url, wait_until="domcontentloaded")
-        page.wait_for_timeout(5000)
-        if "login" not in page.url.lower():
-            return
+        loc = page.locator(selector).first
+        if not loc.count():
+            continue
+        try:
+            with page.context.expect_page(timeout=5000) as popup_info:
+                loc.click(timeout=3000)
+            new_page = popup_info.value
+            new_page.wait_for_load_state("domcontentloaded", timeout=30000)
+            page = new_page
+            break
+        except Exception:
+            try:
+                loc.click(timeout=3000)
+                page.wait_for_timeout(8000)
+                return context.pages[-1]
+                break
+            except Exception:
+                pass
+    return context.pages[-1]
 
 
 def fill_first(page, selectors: list[str], value: str) -> bool:
@@ -133,6 +157,16 @@ def fill_first(page, selectors: list[str], value: str) -> bool:
 def fill_title_fallback(page, value: str) -> bool:
     js = """
     (value) => {
+      const direct = document.querySelector('textarea#title, #title, .js_article_title');
+      if (direct) {
+        direct.focus();
+        if ('value' in direct) direct.value = value;
+        direct.innerText = value;
+        direct.textContent = value;
+        direct.dispatchEvent(new Event('input', {bubbles:true}));
+        direct.dispatchEvent(new Event('change', {bubbles:true}));
+        return true;
+      }
       const nodes = Array.from(document.querySelectorAll('input, textarea, [contenteditable="true"]'));
       const scored = nodes.map((el) => {
         const text = [el.getAttribute('placeholder'), el.getAttribute('aria-label'), el.className, el.id, el.innerText].join(' ');
@@ -161,7 +195,7 @@ def fill_title_fallback(page, value: str) -> bool:
 
 
 def fill_editor(page, html: str) -> bool:
-    for selector in ("#ueditor_0", ".ProseMirror", ".ql-editor", '[contenteditable="true"]'):
+    for selector in ("#ueditor_0 .ProseMirror", "#ueditor_0", ".ProseMirror", ".ql-editor", '[contenteditable="true"]'):
         loc = page.locator(selector).last
         if not loc.count():
             continue
@@ -212,6 +246,12 @@ def click_save_draft_fallback(page) -> bool:
             page.wait_for_timeout(3000)
         return ok
     except Exception:
+        pass
+    try:
+        page.mouse.click(963, 868)
+        page.wait_for_timeout(5000)
+        return True
+    except Exception:
         return False
 
 
@@ -260,10 +300,9 @@ def main() -> int:
             context.close()
             return 0
         print("Opening draft editor.")
-        open_editor(page)
-        title_ok = fill_first(page, ['input[placeholder*="标题"]', 'textarea[placeholder*="标题"]', '[contenteditable="true"][placeholder*="标题"]'], title)
-        if not title_ok:
-            title_ok = fill_title_fallback(page, title)
+        page = open_editor(context, page)
+        page.wait_for_timeout(5000)
+        title_ok = fill_title_fallback(page, title) or fill_first(page, ['textarea#title', '#title', '.js_article_title', 'input[placeholder*="标题"]', 'textarea[placeholder*="标题"]'], title)
         body_ok = fill_editor(page, content_html)
         save_ok = False if args.no_save else (click_save_draft(page) or click_save_draft_fallback(page))
         print(f"Loaded article: {article_dir}")
@@ -271,7 +310,7 @@ def main() -> int:
         if args.publish:
             print("--publish was passed, but automatic mass sending is intentionally not implemented.")
         if not (title_ok and body_ok and save_ok):
-            page.pause()
+            print("Auto draft save did not fully complete; browser will close without publishing.")
         context.close()
     return 0
 
