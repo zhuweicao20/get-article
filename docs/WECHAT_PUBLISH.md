@@ -36,12 +36,15 @@ Use this when the account cannot use the official API.
 Run on your own computer:
 
 ```bat
+run_wechat_login_once.bat
 run_wechat_importer.bat
 ```
 
-The importer opens `https://mp.weixin.qq.com/`, waits for your QR-code login, opens the draft editor, reads the newest local `article.html` or `article_rich.html`, fills the title and body, and leaves the browser open for review.
+`run_wechat_login_once.bat` opens `https://mp.weixin.qq.com/` and lets you scan once. The login state stays in `.local_wechat_profile/`.
 
-It does not save passwords. Browser state is stored only in `.local_wechat_profile/`, which is ignored by git. It does not auto mass-send. Publishing requires explicit manual review, and the script still does not implement automatic group sending.
+`run_wechat_importer.bat` reuses that local browser state, opens the draft editor, reads the newest local `article.html` or `article_rich.html`, fills the title and body, tries to save a draft, and leaves the browser open for review.
+
+It does not save passwords. Browser state is stored only in `.local_wechat_profile/`, which is ignored by git. WeChat may still occasionally force a new QR-code login. It does not auto mass-send. Publishing requires explicit manual review, and the script still does not implement automatic group sending.
 
 ## Artifacts
 
