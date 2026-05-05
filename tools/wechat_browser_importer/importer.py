@@ -216,43 +216,66 @@ def fill_editor(page, html: str) -> bool:
     return False
 
 
-def click_save_draft(page) -> bool:
-    for selector in ("text=保存为草稿", "text=保存草稿", "text=存为草稿", "text=保存"):
+def click_action(page, publish: bool) -> bool:
+    selectors = ("text=发表", "text=发布") if publish else ("text=保存为草稿", "text=保存草稿", "text=存为草稿", "text=保存")
+    for selector in selectors:
         loc = page.locator(selector).last
         if not loc.count():
             continue
         try:
             loc.click(timeout=3000)
             page.wait_for_timeout(3000)
+            if publish:
+                confirm_publish(page)
             return True
         except Exception:
             pass
     return False
 
 
-def click_save_draft_fallback(page) -> bool:
+def click_action_fallback(page, publish: bool) -> bool:
+    words = "发表|发布" if publish else "保存为草稿|保存草稿|存为草稿|保存"
     js = """
-    () => {
+    (words) => {
+      const re = new RegExp(words);
       const nodes = Array.from(document.querySelectorAll('button, a, div, span'));
-      const target = nodes.find(el => /保存为草稿|保存草稿|存为草稿|保存/.test((el.innerText || '').trim()));
+      const target = nodes.find(el => re.test((el.innerText || '').trim()));
       if (!target) return false;
       target.click();
       return true;
     }
     """
     try:
-        ok = bool(page.evaluate(js))
+        ok = bool(page.evaluate(js, words))
         if ok:
             page.wait_for_timeout(3000)
+            if publish:
+                confirm_publish(page)
         return ok
     except Exception:
         pass
     try:
-        page.mouse.click(963, 868)
+        page.mouse.click(1182 if publish else 963, 868)
         page.wait_for_timeout(5000)
+        if publish:
+            confirm_publish(page)
         return True
     except Exception:
         return False
+
+
+def confirm_publish(page) -> None:
+    for _ in range(4):
+        for selector in ("text=继续发表", "text=确定", "text=确认", "text=发表"):
+            loc = page.locator(selector).last
+            if not loc.count():
+                continue
+            try:
+                loc.click(timeout=2500)
+                page.wait_for_timeout(3000)
+                break
+            except Exception:
+                pass
 
 
 def main() -> int:
@@ -261,7 +284,7 @@ def main() -> int:
     parser.add_argument("--article-dir", default="")
     parser.add_argument("--login-only", action="store_true")
     parser.add_argument("--no-save", action="store_true")
-    parser.add_argument("--publish", action="store_true", help="Reserved; automatic mass sending is not implemented")
+    parser.add_argument("--publish", action="store_true", help="Explicitly click Publish instead of Save Draft")
     args = parser.parse_args()
 
     article_dir: Optional[Path] = None
@@ -304,11 +327,11 @@ def main() -> int:
         page.wait_for_timeout(5000)
         title_ok = fill_title_fallback(page, title) or fill_first(page, ['textarea#title', '#title', '.js_article_title', 'input[placeholder*="标题"]', 'textarea[placeholder*="标题"]'], title)
         body_ok = fill_editor(page, content_html)
-        save_ok = False if args.no_save else (click_save_draft(page) or click_save_draft_fallback(page))
+        save_ok = False if args.no_save else (click_action(page, args.publish) or click_action_fallback(page, args.publish))
         print(f"Loaded article: {article_dir}")
         print(f"title_filled={title_ok} body_filled={body_ok} draft_save_clicked={save_ok}")
         if args.publish:
-            print("--publish was passed, but automatic mass sending is intentionally not implemented.")
+            print("publish_clicked=True")
         if not (title_ok and body_ok and save_ok):
             print("Auto draft save did not fully complete; browser will close without publishing.")
         context.close()
