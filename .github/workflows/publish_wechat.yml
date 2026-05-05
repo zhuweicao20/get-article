@@ -1,0 +1,85 @@
+name: Publish Generated Article to WeChat
+
+on:
+  workflow_dispatch:
+    inputs:
+      article_dir:
+        description: "指定 output/articles 下的文章文件夹名；留空则自动选最新文章"
+        required: false
+        default: ""
+      mode:
+        description: "draft 只保存草稿；publish 提交群发发布"
+        required: true
+        default: "draft"
+        type: choice
+        options:
+          - draft
+          - publish
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  publish-wechat:
+    runs-on: ubuntu-latest
+
+    env:
+      PYTHONUTF8: "1"
+      WECHAT_APPID: ${{ secrets.WECHAT_APPID }}
+      WECHAT_APPSECRET: ${{ secrets.WECHAT_APPSECRET }}
+      WECHAT_AUTHOR: ${{ secrets.WECHAT_AUTHOR }}
+      WECHAT_SOURCE_URL: ${{ secrets.WECHAT_SOURCE_URL }}
+      WECHAT_NEED_OPEN_COMMENT: ${{ secrets.WECHAT_NEED_OPEN_COMMENT }}
+      WECHAT_ONLY_FANS_CAN_COMMENT: ${{ secrets.WECHAT_ONLY_FANS_CAN_COMMENT }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Download latest generated article artifact
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: auto_chem_wechat.yml
+          name: chem-wechat-article-packages
+          path: output
+          search_artifacts: true
+          if_no_artifact_found: fail
+
+      - name: Show downloaded article package
+        run: |
+          echo "Downloaded output tree:"
+          find output -maxdepth 4 -type f | sort
+
+      - name: Create WeChat draft or publish
+        run: |
+          ARTICLE_DIR="${{ github.event.inputs.article_dir }}"
+          MODE="${{ github.event.inputs.mode }}"
+
+          if [ -n "$ARTICLE_DIR" ]; then
+            python scripts/wechat_official_publish.py \
+              --article-root output/articles \
+              --article-dir "$ARTICLE_DIR" \
+              --mode "$MODE"
+          else
+            python scripts/wechat_official_publish.py \
+              --article-root output/articles \
+              --mode "$MODE"
+          fi
+
+      - name: Upload WeChat publish result
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wechat-publish-result
+          path: output/wechat_publish_result.json
