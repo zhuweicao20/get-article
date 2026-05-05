@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 from pathlib import Path
 from typing import Optional
@@ -14,6 +15,10 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE_DIR = ROOT / ".local_wechat_profile"
 ARTICLE_NAMES = ("article_wx_ready.html", "article_rich.html", "article.html", "index.html")
+CHROME_CANDIDATES = (
+    r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+    r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+)
 
 
 def clean_text(value: str) -> str:
@@ -125,6 +130,36 @@ def fill_first(page, selectors: list[str], value: str) -> bool:
     return False
 
 
+def fill_title_fallback(page, value: str) -> bool:
+    js = """
+    (value) => {
+      const nodes = Array.from(document.querySelectorAll('input, textarea, [contenteditable="true"]'));
+      const scored = nodes.map((el) => {
+        const text = [el.getAttribute('placeholder'), el.getAttribute('aria-label'), el.className, el.id, el.innerText].join(' ');
+        let score = 0;
+        if (/标题|title/i.test(text)) score += 10;
+        const rect = el.getBoundingClientRect();
+        if (rect.top < 260) score += 3;
+        if (rect.width > 300) score += 2;
+        return {el, score};
+      }).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
+      const target = scored[0]?.el || nodes.find(el => el.getBoundingClientRect().top < 260 && el.getBoundingClientRect().width > 300);
+      if (!target) return false;
+      target.focus();
+      if ('value' in target) target.value = value;
+      target.innerText = value;
+      target.textContent = value;
+      target.dispatchEvent(new Event('input', {bubbles:true}));
+      target.dispatchEvent(new Event('change', {bubbles:true}));
+      return true;
+    }
+    """
+    try:
+        return bool(page.evaluate(js, value))
+    except Exception:
+        return False
+
+
 def fill_editor(page, html: str) -> bool:
     for selector in ("#ueditor_0", ".ProseMirror", ".ql-editor", '[contenteditable="true"]'):
         loc = page.locator(selector).last
@@ -161,6 +196,25 @@ def click_save_draft(page) -> bool:
     return False
 
 
+def click_save_draft_fallback(page) -> bool:
+    js = """
+    () => {
+      const nodes = Array.from(document.querySelectorAll('button, a, div, span'));
+      const target = nodes.find(el => /保存为草稿|保存草稿|存为草稿|保存/.test((el.innerText || '').trim()));
+      if (!target) return false;
+      target.click();
+      return true;
+    }
+    """
+    try:
+        ok = bool(page.evaluate(js))
+        if ok:
+            page.wait_for_timeout(3000)
+        return ok
+    except Exception:
+        return False
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--article-root", default=str(ROOT / "output" / "articles"))
@@ -187,8 +241,17 @@ def main() -> int:
         content_html = simplify_html(raw)
 
     PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+    chrome_path = os.getenv("CHROME_PATH", "").strip()
+    if not chrome_path:
+        chrome_path = next((p for p in CHROME_CANDIDATES if Path(p).exists()), "")
     with sync_playwright() as p:
-        context = p.chromium.launch_persistent_context(str(PROFILE_DIR), headless=False, viewport={"width": 1400, "height": 900})
+        launch_kwargs = {
+            "headless": False,
+            "viewport": {"width": 1400, "height": 900},
+        }
+        if chrome_path:
+            launch_kwargs["executable_path"] = chrome_path
+        context = p.chromium.launch_persistent_context(str(PROFILE_DIR), **launch_kwargs)
         page = context.pages[0] if context.pages else context.new_page()
         wait_for_login(page, 180_000)
         if args.login_only:
@@ -199,8 +262,10 @@ def main() -> int:
         print("Opening draft editor.")
         open_editor(page)
         title_ok = fill_first(page, ['input[placeholder*="标题"]', 'textarea[placeholder*="标题"]', '[contenteditable="true"][placeholder*="标题"]'], title)
+        if not title_ok:
+            title_ok = fill_title_fallback(page, title)
         body_ok = fill_editor(page, content_html)
-        save_ok = False if args.no_save else click_save_draft(page)
+        save_ok = False if args.no_save else (click_save_draft(page) or click_save_draft_fallback(page))
         print(f"Loaded article: {article_dir}")
         print(f"title_filled={title_ok} body_filled={body_ok} draft_save_clicked={save_ok}")
         if args.publish:
